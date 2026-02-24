@@ -93,6 +93,62 @@ func (dd *DividendData) GetDividendData(ticker string, apiKey string) error {
 }
 
 /*
+Makes http request to alpha vantage dividends api
+Loads dividneds data into DividendData struct
+*/
+func (dd *DividendData) GetDividendGrowth(ticker string, apiKey string) error {
+	// Generate full url
+	url := fmt.Sprintf("https://www.alphavantage.co/query?function=DIVIDENDS&symbol=%s&apikey=%s", ticker, apiKey)
+
+	// Create custom client with 10 second timeout feature
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+	// Get response from alphavantage
+	resp, err := client.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// Stream and decode body into struct
+	if err := json.NewDecoder(resp.Body).Decode(&dd); err != nil {
+		return err
+	}
+	// Generate TTM Dividend
+	var TTMDiv float64
+	for i := range 4 {
+		// Get div to add to running total
+		div, err := strconv.ParseFloat(dd.DivData[i].Amount, 64)
+		if err != nil {
+			return err
+		}
+		// Collect total TTM div
+		TTMDiv += div
+	}
+
+	// Generate Prior years' (relative to ttm) dividend
+	var PrevDiv float64
+	for i := 4; i <= 7; i++ {
+		// Get div to add to running total
+		div, err := strconv.ParseFloat(dd.DivData[i].Amount, 64)
+		if err != nil {
+			return err
+		}
+		// Collect total previous div
+		PrevDiv += div
+	}
+	// Calculate div growth
+	divGrowth := ((TTMDiv - PrevDiv) / PrevDiv) * 100
+
+	// Print div growth to console
+	fmt.Printf("TTM Dividend: %.2f\n", TTMDiv)
+	fmt.Printf("Prev Dividend: %.2f\n", PrevDiv)
+	fmt.Printf("TTM Dividend Growth: %.2f\n", divGrowth)
+	return nil
+}
+
+/*
 Print all Dividend data to terminal
 */
 func (dd *DividendData) DisplayDividendData() {

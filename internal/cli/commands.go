@@ -114,7 +114,7 @@ func (s *State) GetHoldings(username string) error {
 		return err
 	}
 	// Print holding value to terminal
-	fmt.Printf("Total holding value: %.2f\n", total)
+	fmt.Printf("Cost basis of Portfolio: $%.2f\n", total)
 	return nil
 }
 

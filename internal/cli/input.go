@@ -34,13 +34,13 @@ func CleanInput(s string) string {
 func PrintCommands() {
 	fmt.Println("COMMANDS")
 	fmt.Println("----------------------------")
-	fmt.Println("* research")
-	fmt.Println("Get individual stock data")
-	fmt.Println("Usage: research <stock>")
-	fmt.Println("----------------------------")
 	fmt.Println("* login")
 	fmt.Println("Sign up or login to your account")
 	fmt.Println("Usage: signup <username> <password>")
+	fmt.Println("----------------------------")
+	fmt.Println("* research")
+	fmt.Println("Get individual stock data")
+	fmt.Println("Usage: research <stock>")
 	fmt.Println("----------------------------")
 	fmt.Println("* add")
 	fmt.Println("Add holding to your portfolio")
@@ -58,5 +58,4 @@ func PrintCommands() {
 	fmt.Println("Close application")
 	fmt.Println("Usage: exit")
 	fmt.Println("----------------------------")
-
 }

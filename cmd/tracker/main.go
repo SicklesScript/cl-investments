@@ -87,8 +87,8 @@ func main() {
 			if err != nil {
 				fmt.Printf("error adding transaction: %s\n", err)
 			}
-		case "holdings":
-			// Get total holding value for user
+		case "cost-basis":
+			// Get total cost value for user
 			err := state.GetHoldings(state.CurrentUser)
 			if err != nil {
 				fmt.Printf("error: %s\n", err)
@@ -109,11 +109,20 @@ func main() {
 			// Print div data to console
 			dividendData.DisplayDividendData()
 		case "growth":
-			// TODO:
-			// Return ttm div growth of portfolio
+			ticker := words[1]
+			// Get dividend growth data of etf or company
+			err := dividendData.GetDividendGrowth(ticker, apiKey)
+			if err != nil {
+				fmt.Printf("error: %s", err)
+			}
 		case "upload":
-			// TODO:
-			// Upload csv file of current holdings
+			// Get filepath arg from user
+			filePath := words[1]
+			// Parse csv and print data to console
+			err := state.ParseHoldingsCSV(filePath)
+			if err != nil {
+				fmt.Printf("error: %s\n", err)
+			}
 		case "exit":
 			return
 		default:

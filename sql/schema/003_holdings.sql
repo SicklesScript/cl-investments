@@ -3,8 +3,8 @@ CREATE TABLE transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     ticker VARCHAR(6) NOT NULL,
     transaction_date TIMESTAMP NOT NULL,
-    transaction_price DECIMAL(10, 4) NOT NULL,
-    shares DECIMAL(10, 8) NOT NULL,
+    transaction_price DECIMAL(18, 8) NOT NULL,
+    shares DECIMAL(18, 8) NOT NULL,
     type VARCHAR(4) NOT NULL CHECK (type IN('BUY', 'SELL', 'DIV')),
     username TEXT NOT NULL,
 
