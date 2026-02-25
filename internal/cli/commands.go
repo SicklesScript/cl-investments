@@ -152,3 +152,19 @@ func (s *State) GetTotalReturn(username string) error {
 	fmt.Printf("total return for portfolio: %.2f%%\n", portfolioReturn)
 	return nil
 }
+
+/*
+This architecture might be bad.
+
+Currently need this function to create list of user holdings to pass off to my alphalogic package
+to calculate whole portfolio dividend growth
+*/
+func (s *State) GetAllHoldings(username string) ([]database.Transaction, error) {
+	// Get all holdings for user
+	holdings, err := s.DBQueries.GetAll(context.Background(), username)
+	if err != nil {
+		return []database.Transaction{}, err
+	}
+	// Return holdings for use in dividend growth calc
+	return holdings, nil
+}

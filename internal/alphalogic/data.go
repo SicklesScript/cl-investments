@@ -5,7 +5,11 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+
+	"strings"
 	"time"
+
+	"github.com/SicklesScript/cl-investments/internal/database"
 )
 
 /*
@@ -97,53 +101,21 @@ Makes http request to alpha vantage dividends api
 Loads dividneds data into DividendData struct
 */
 func (dd *DividendData) GetDividendGrowth(ticker string, apiKey string) error {
-	// Generate full url
-	url := fmt.Sprintf("https://www.alphavantage.co/query?function=DIVIDENDS&symbol=%s&apikey=%s", ticker, apiKey)
-
-	// Create custom client with 10 second timeout feature
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
-	// Get response from alphavantage
-	resp, err := client.Get(url)
+	// Load dd struct
+	err := dd.GetDividendData(ticker, apiKey)
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	// Pass shares (as string for parsing) as 1 to simulate single share
+	shares := "1"
+	ttmDiv, prevDiv := dd.CalculateDiv(shares)
 
-	// Stream and decode body into struct
-	if err := json.NewDecoder(resp.Body).Decode(&dd); err != nil {
-		return err
-	}
-	// Generate TTM Dividend
-	var TTMDiv float64
-	for i := range 4 {
-		// Get div to add to running total
-		div, err := strconv.ParseFloat(dd.DivData[i].Amount, 64)
-		if err != nil {
-			return err
-		}
-		// Collect total TTM div
-		TTMDiv += div
-	}
-
-	// Generate Prior years' (relative to ttm) dividend
-	var PrevDiv float64
-	for i := 4; i <= 7; i++ {
-		// Get div to add to running total
-		div, err := strconv.ParseFloat(dd.DivData[i].Amount, 64)
-		if err != nil {
-			return err
-		}
-		// Collect total previous div
-		PrevDiv += div
-	}
 	// Calculate div growth
-	divGrowth := ((TTMDiv - PrevDiv) / PrevDiv) * 100
+	divGrowth := ((ttmDiv - prevDiv) / prevDiv) * 100
 
 	// Print div growth to console
-	fmt.Printf("TTM Dividend: %.2f\n", TTMDiv)
-	fmt.Printf("Prev Dividend: %.2f\n", PrevDiv)
+	fmt.Printf("TTM Dividend: %.2f\n", ttmDiv)
+	fmt.Printf("Prev Dividend: %.2f\n", prevDiv)
 	fmt.Printf("TTM Dividend Growth: %.2f\n", divGrowth)
 	return nil
 }
@@ -158,7 +130,7 @@ func (dd *DividendData) DisplayDividendData() {
 	// Initalize variable to hold total TTM Div
 	var TTMDiv float64
 	// Print last 4 dividend payments to console
-	for i := range 4 {
+	for i := range 8 {
 		fmt.Printf("TTM Div Payments: %s\n", dd.DivData[i].Amount)
 		// Parse string div data to float64
 		div, err := strconv.ParseFloat(dd.DivData[i].Amount, 64)
@@ -173,4 +145,80 @@ func (dd *DividendData) DisplayDividendData() {
 	fmt.Printf("Next Dividend Date: %s\n", dd.DivData[0].ExDivDate)
 	fmt.Println("---------------------------------------------")
 	fmt.Println("---------------------------------------------")
+}
+
+/*
+Calculate weighted dividend growth of entire portfolio
+*/
+func (dd *DividendData) GetPortfolioDividendGrowth(apiKey string, holdings []database.Transaction) error {
+	// Div variables for running totals
+	var TTMDiv float64
+	var PrevDiv float64
+
+	// Loop over holdings list to get all data
+	for _, holding := range holdings {
+		// Reset struct incase it is causing error
+
+		// Get dividend data
+		err := dd.GetDividendData(holding.Ticker, apiKey)
+		if err != nil {
+			return err
+		}
+		// Calculate ttm and prev div for holding
+		ttmDiv, prevDiv := dd.CalculateDiv(holding.Shares)
+
+		// Manually account for schd stock split
+		if strings.ToLower(holding.Ticker) == "schd" {
+			prevDiv = 0.99437 * 506.01787
+		}
+		// Manually account for avgo stock split
+		if strings.ToLower(holding.Ticker) == "avgo" {
+			prevDiv = 2.17 * 0.61649
+		}
+		// Logging
+		fmt.Printf("Ticker: %s, TTM Div: %.2f, Prev Div: %.2f\n", holding.Ticker, ttmDiv, prevDiv)
+		// Accumulate total
+		TTMDiv += ttmDiv
+		PrevDiv += prevDiv
+
+		// Add delay to avoid api bottleneck
+		time.Sleep(5 * time.Second)
+	}
+
+	// Calculate div growth
+	divGrowth := ((TTMDiv - PrevDiv) / PrevDiv) * 100
+
+	// Print div growth to console
+	fmt.Printf("TTM Dividend: %.2f\n", TTMDiv)
+	fmt.Printf("Prev Dividend: %.2f\n", PrevDiv)
+	fmt.Printf("TTM Dividend Growth: %.2f\n", divGrowth)
+	return nil
+}
+
+// Helpter function for accumulating ttm and prev dividend
+func (dd *DividendData) CalculateDiv(shares string) (float64, float64) {
+	var ttmDiv, prevDiv float64
+
+	// Get TTM Div total
+	for i := range 4 {
+		// Parse div and shares to get weighted div
+		div, _ := strconv.ParseFloat(dd.DivData[i].Amount, 64)
+		s, _ := strconv.ParseFloat(shares, 64)
+
+		// Total div factoring in shares
+		weightedDiv := div * s
+		ttmDiv += weightedDiv
+	}
+
+	// Get 1 year prior to TTM div total
+	for i := 4; i <= 7; i++ {
+		// Parse div and shares to get total weighted div
+		div, _ := strconv.ParseFloat(dd.DivData[i].Amount, 64)
+		s, _ := strconv.ParseFloat(shares, 64)
+
+		// Total div factoring in shares
+		weightedDiv := div * s
+		prevDiv += weightedDiv
+	}
+	return ttmDiv, prevDiv
 }

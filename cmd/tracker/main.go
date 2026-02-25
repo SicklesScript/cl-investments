@@ -115,6 +115,17 @@ func main() {
 			if err != nil {
 				fmt.Printf("error: %s", err)
 			}
+		case "portfolio-growth":
+			// Get list of user holdings
+			holdings, err := state.GetAllHoldings(state.CurrentUser)
+			if err != nil {
+				fmt.Printf("error: %s", err)
+			}
+			// Display weighted TTM div growth of portfolio
+			err = dividendData.GetPortfolioDividendGrowth(apiKey, holdings)
+			if err != nil {
+				fmt.Printf("error: %s", err)
+			}
 		case "upload":
 			// Get filepath arg from user
 			filePath := words[1]
