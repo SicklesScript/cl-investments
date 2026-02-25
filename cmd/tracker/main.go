@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -43,6 +44,8 @@ func main() {
 	var stockData alphalogic.StockData
 	// Initalize DividendData struct
 	var dividendData alphalogic.DividendData
+	// Initialize GQR struct
+	var gqr alphalogic.GlobalQuoteResponse
 
 	// Print commands for user
 	cli.PrintCommands()
@@ -53,6 +56,15 @@ func main() {
 
 		// Switch series to direct flow of commands
 		switch words[0] {
+		case "login":
+			// Get username and password from user input
+			username := words[1]
+			password := words[2]
+			// If user exists, login, else signup and then login
+			err := state.LoginOrSignup(username, password)
+			if err != nil {
+				fmt.Printf("error in login/signup: %s\n", err)
+			}
 		case "research":
 			ticker := words[1]
 			// Load stock data struct
@@ -62,15 +74,6 @@ func main() {
 			} else {
 				// Display stock data to terminal
 				stockData.DisplayStockData()
-			}
-		case "login":
-			// Get username and password from user input
-			username := words[1]
-			password := words[2]
-			// If user exists, login, else signup and then login
-			err := state.LoginOrSignup(username, password)
-			if err != nil {
-				fmt.Printf("error in login/signup: %s\n", err)
 			}
 		case "add":
 			// Store user arsg
@@ -94,12 +97,17 @@ func main() {
 				fmt.Printf("error: %s\n", err)
 			}
 		case "return":
+			// Get return data for each individual holding
+			holdings, err := state.DBQueries.GetReturn(context.Background(), state.CurrentUser)
+			if err != nil {
+				fmt.Printf("error: %s", err)
+			}
 			// Get total return for each stock in portfolio
-			err := state.GetTotalReturn(state.CurrentUser)
+			err = gqr.GetTotalReturn(state.CurrentUser, apiKey, holdings)
 			if err != nil {
 				fmt.Printf("error: %s\n", err)
 			}
-		case "dividend":
+		case "div-data":
 			ticker := words[1]
 			// Get dividend data for stock
 			err := dividendData.GetDividendData(ticker, apiKey)
@@ -108,7 +116,7 @@ func main() {
 			}
 			// Print div data to console
 			dividendData.DisplayDividendData()
-		case "growth":
+		case "div-growth":
 			ticker := words[1]
 			// Get dividend growth data of etf or company
 			err := dividendData.GetDividendGrowth(ticker, apiKey)

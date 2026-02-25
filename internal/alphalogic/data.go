@@ -116,7 +116,7 @@ func (dd *DividendData) GetDividendGrowth(ticker string, apiKey string) error {
 	// Print div growth to console
 	fmt.Printf("TTM Dividend: %.2f\n", ttmDiv)
 	fmt.Printf("Prev Dividend: %.2f\n", prevDiv)
-	fmt.Printf("TTM Dividend Growth: %.2f\n", divGrowth)
+	fmt.Printf("TTM Dividend Growth: %.2f%%\n", divGrowth)
 	return nil
 }
 
@@ -221,4 +221,69 @@ func (dd *DividendData) CalculateDiv(shares string) (float64, float64) {
 		prevDiv += weightedDiv
 	}
 	return ttmDiv, prevDiv
+}
+
+/*
+Get total return for each holding in portfolio
+*/
+func (gqr *GlobalQuoteResponse) GetTotalReturn(username, apiKey string, holdings []database.GetReturnRow) error {
+	// Variables for storing totals
+	var totalProfit float64
+	var totalVal float64
+	var totalCostBasis float64
+
+	// Iterate over holdings and print return for each ticker
+	for _, holding := range holdings {
+		// Get current price of holding
+		currPrice, err := gqr.GetCurrentPrice(holding.Ticker, apiKey)
+		if err != nil {
+			return err
+		}
+		// Placeholder num for current share price since api does not currently contain that info
+		marketVal := holding.CurrentShares * currPrice
+		totalVal += marketVal // Get total market value for entire port
+
+		totalCostBasis += holding.CostBasis // Get total cost basis for entire port
+
+		tickerProfit := marketVal - holding.CostBasis
+		totalProfit += tickerProfit // Get total profit for entire port
+
+		totalReturn := (tickerProfit / holding.CostBasis) * 100
+		fmt.Printf("total return for %s: %.2f%%\n", holding.Ticker, totalReturn)
+
+		// Sleep to avoid messing up api
+		time.Sleep(5 * time.Second)
+	}
+	// Get total portfolio return
+	portfolioReturn := (totalProfit / totalCostBasis) * 100
+	fmt.Printf("total return for portfolio: %.2f%%\n", portfolioReturn)
+	return nil
+}
+
+func (gqr *GlobalQuoteResponse) GetCurrentPrice(ticker, apiKey string) (float64, error) {
+	// Generate URL for making api req for price data
+	url := fmt.Sprintf("https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=%s&apikey=%s", ticker, apiKey)
+
+	// Create custom client with 10 second timeout feature
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+	// Get response from alphavantage
+	resp, err := client.Get(url)
+	if err != nil {
+		return 0.0, err
+	}
+	defer resp.Body.Close()
+
+	// Stream and decode body into struct
+	if err := json.NewDecoder(resp.Body).Decode(&gqr); err != nil {
+		return 0.0, err
+	}
+	// Parse price string to float
+	currPrice, err := strconv.ParseFloat(gqr.Quote.Price, 64)
+	if err != nil {
+		return 0.0, err
+	}
+	// Return current stock price
+	return currPrice, nil
 }

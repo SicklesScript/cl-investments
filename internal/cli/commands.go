@@ -119,41 +119,6 @@ func (s *State) GetHoldings(username string) error {
 }
 
 /*
-Get total return for each holding in portfolio
-*/
-func (s *State) GetTotalReturn(username string) error {
-	// Get return data for each individual holding
-	holdings, err := s.DBQueries.GetReturn(context.Background(), username)
-	if err != nil {
-		return err
-	}
-
-	// Variables for storing totals
-	var totalProfit float64
-	var totalVal float64
-	var totalCostBasis float64
-
-	// Iterate over holdings and print return for each ticker
-	for _, holding := range holdings {
-		// Placeholder num for current share price since api does not currently contain that info
-		marketVal := holding.CurrentShares * 540.00
-		totalVal += marketVal // Get total market value for entire port
-
-		totalCostBasis += holding.CostBasis // Get total cost basis for entire port
-
-		tickerProfit := marketVal - holding.CostBasis
-		totalProfit += tickerProfit // Get total profit for entire port
-
-		totalReturn := (tickerProfit / holding.CostBasis) * 100
-		fmt.Printf("total return for %s: %.2f%%\n", holding.Ticker, totalReturn)
-	}
-	// Get total portfolio return
-	portfolioReturn := (totalProfit / totalCostBasis) * 100
-	fmt.Printf("total return for portfolio: %.2f%%\n", portfolioReturn)
-	return nil
-}
-
-/*
 This architecture might be bad.
 
 Currently need this function to create list of user holdings to pass off to my alphalogic package

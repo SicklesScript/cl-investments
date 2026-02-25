@@ -25,3 +25,12 @@ type Data struct {
 	ExDivDate string `json:"ex_dividend_date"`
 	Amount    string `json:"amount"`
 }
+
+type GlobalQuoteResponse struct {
+	Quote GlobalQuote `json:"Global Quote"`
+}
+
+type GlobalQuote struct {
+	Symbol string `json:"01. symbol"`
+	Price  string `json:"05. price"`
+}
