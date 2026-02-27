@@ -14,7 +14,7 @@ A powerful Command Line Interface (CLI) tool for tracking stock portfolios, anal
     - View detailed dividend data for individual stocks.
     - Analyze dividend growth for companies and ETFs.
     - Calculate weighted TTM (Trailing Twelve Months) dividend growth for your entire portfolio.
-- **Bulk Import**: Upload holdings and transactions via CSV files.
+- **Bulk Import**: Upload holdings via CSV files.
 
 ## Tech Stack
 
